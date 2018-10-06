@@ -52,9 +52,9 @@ IMU_SENSOR_YAML = dict(
     accelerometer_random_walk= 3.0000e-3
 )
 
-
-def getRosbagMetadata(rosbag_path):
+def get_rosbag_metadata(rosbag_path):
     assert(os.path.exists(rosbag_path))
+    # This subprocess will only work if ROS is sourced...
     return yaml.load(subprocess.Popen(['rosbag', 'info', '--yaml', rosbag_path],
                                       stdout=subprocess.PIPE).communicate()[0])
 
@@ -64,7 +64,6 @@ def mkdir_without_exception(path):
     except OSError:
         print("The directory ", path, " already exists.")
         pass
-
 
 def setup_dataset_dirs(rosbag_path, output_path, camera_topics, imu_topics):
     # Create base folder
@@ -116,13 +115,13 @@ def setup_dataset_dirs(rosbag_path, output_path, camera_topics, imu_topics):
 
     return cam_folder_paths, imu_folder_paths
 
-def rosbag2Euroc(rosbag_path, output_path):
+def rosbag_2_euroc(rosbag_path, output_path):
     # Check that the path to the rosbag exists.
     assert(os.path.exists(rosbag_path))
     bag = rosbag.Bag(rosbag_path)
 
     # Check that rosbag has the data we need to convert to Euroc dataset format.
-    bag_metadata = getRosbagMetadata(rosbag_path)
+    bag_metadata = get_rosbag_metadata(rosbag_path)
     camera_topics = []
     imu_topics = []
     for element in bag_metadata['topics']:
@@ -167,8 +166,7 @@ def rosbag2Euroc(rosbag_path, output_path):
     for imu_topic in imu_topics:
         print("Converting IMU messages for topic: {}".format(imu_topic))
         for _, msg, t in bag.read_messages(topics=[imu_topic]):
-            print(msg)
-
+            raise NotImplementedError()
 
     # Close the rosbag.
     bag.close()
@@ -183,7 +181,7 @@ if __name__ == "__main__":
     # Convert rosbag.
     print("Converting rosbag: \"{}\" to EuRoC format.".format(os.path.split(args.rosbag_path)[-1]))
     print("Storing results in directory: {}.".format(args.output_path))
-    rosbag2Euroc(args.rosbag_path, args.output_path)
+    rosbag_2_euroc(args.rosbag_path, args.output_path)
     print("Done.")
 
 
