@@ -6,6 +6,7 @@ import sys
 import argparse
 import os
 import subprocess, yaml
+import errno
 
 import cv2
 
@@ -58,18 +59,21 @@ def get_rosbag_metadata(rosbag_path):
     return yaml.load(subprocess.Popen(['rosbag', 'info', '--yaml', rosbag_path],
                                       stdout=subprocess.PIPE).communicate()[0])
 
-def mkdir_without_exception(path):
+def mkdirs_without_exception(path):
     try:
-       os.mkdir(path)
-    except OSError:
-        print("The directory {} already exists.".format(path))
-        pass
+       os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            print("The directory {} already exists.".format(path))
+        else:
+            print(e)
+            raise  # raises the error again
 
 def setup_dataset_dirs(rosbag_path, output_path, camera_topics, imu_topics):
     # Create base folder
-    dirname = 'mav0'
+    dirname = os.path.split(rosbag_path)[-1].split(".", 1)[0] + '/mav0'
     base_path = os.path.join(output_path, dirname)
-    mkdir_without_exception(base_path)
+    mkdirs_without_exception(base_path)
 
     # Create folder for camera topic
     cam_folder_name = 'cam'
@@ -78,9 +82,9 @@ def setup_dataset_dirs(rosbag_path, output_path, camera_topics, imu_topics):
     cam_folder_paths = []
     for i in range(len(camera_topics)):
         cam_folder_paths.append(os.path.join(base_path, cam_folder_name + repr(i)))
-        mkdir_without_exception(cam_folder_paths[-1])
+        mkdirs_without_exception(cam_folder_paths[-1])
         # Create data folder
-        mkdir_without_exception(os.path.join(cam_folder_paths[-1], 'data'))
+        mkdirs_without_exception(os.path.join(cam_folder_paths[-1], 'data'))
         # Create data.csv file
         with open(os.path.join(cam_folder_paths[-1], data_csv), 'w+') as outfile:
             outfile.write('#timestamp [ns],filename')
@@ -96,7 +100,7 @@ def setup_dataset_dirs(rosbag_path, output_path, camera_topics, imu_topics):
     imu_folder_paths = []
     for i in range(len(imu_topics)):
         imu_folder_paths.append(os.path.join(base_path, imu_folder_name + repr(i)))
-        mkdir_without_exception(imu_folder_paths[-1])
+        mkdirs_without_exception(imu_folder_paths[-1])
         # Create data.csv file
         with open(os.path.join(imu_folder_paths[-1], data_csv), 'w+') as outfile:
             outfile.write("#timestamp [ns],w_RS_S_x [rad s^-1],w_RS_S_y [rad s^-1],w_RS_S_z [rad s^-1],a_RS_S_x [m s^-2],a_RS_S_y [m s^-2],a_RS_S_z [m s^-2]")
