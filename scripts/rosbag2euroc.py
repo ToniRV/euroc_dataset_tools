@@ -62,7 +62,7 @@ def mkdir_without_exception(path):
     try:
        os.mkdir(path)
     except OSError:
-        print("The directory ", path, " already exists.")
+        print("The directory {} already exists.".format(path))
         pass
 
 def setup_dataset_dirs(rosbag_path, output_path, camera_topics, imu_topics):
@@ -127,7 +127,7 @@ def rosbag_2_euroc(rosbag_path, output_path):
     for element in bag_metadata['topics']:
         if (element['type'] == 'sensor_msgs/Image'):
             camera_topics.append(element['topic'])
-        elif (element['type'] == ''):
+        elif (element['type'] == 'sensor_msgs/Imu'):
             imu_topics.append(element['topic'])
 
     # Check that it has one or two Image topics.
@@ -146,6 +146,7 @@ def rosbag_2_euroc(rosbag_path, output_path):
     cv_bridge = CvBridge()
 
     # Convert image msg to Euroc dataset format.
+    assert(len(camera_topics) == len(cam_folder_paths))
     for i, cam_topic in enumerate(camera_topics):
         print("Converting camera messages for topic: {}".format(cam_topic))
         print("Storing results in: {}".format(cam_folder_paths[i]))
@@ -163,10 +164,19 @@ def rosbag_2_euroc(rosbag_path, output_path):
                     print e
 
     # Convert IMU msg to Euroc dataset format.
-    for imu_topic in imu_topics:
+    assert(len(imu_topics) == len(imu_folder_paths))
+    for i, imu_topic in enumerate(imu_topics):
         print("Converting IMU messages for topic: {}".format(imu_topic))
-        for _, msg, t in bag.read_messages(topics=[imu_topic]):
-            raise NotImplementedError()
+        print("Storing results in: {}".format(imu_folder_paths[i]))
+        with open(os.path.join(imu_folder_paths[i], 'data.csv'), 'a') as outfile:
+            for _, msg, t in bag.read_messages(topics=[imu_topic]):
+                outfile.write(str(msg.header.stamp) + ',' +
+                              str(msg.angular_velocity.x) + ',' +
+                              str(msg.angular_velocity.y) + ',' +
+                              str(msg.angular_velocity.z) + ',' +
+                              str(msg.linear_acceleration.x) + ',' +
+                              str(msg.linear_acceleration.y) + ',' +
+                              str(msg.linear_acceleration.z))
 
     # Close the rosbag.
     bag.close()
