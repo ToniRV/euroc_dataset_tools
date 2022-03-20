@@ -16,6 +16,13 @@ import rospy
 from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
 
+CAM_FOLDER_NAME = 'cam'
+IMU_FOLDER_NAME = 'imu'
+DATA_CSV = 'data.csv'
+SENSOR_YAML = 'sensor.yaml'
+BODY_YAML = 'body.yaml'
+
+# Can get this from ros topic
 CAM_SENSOR_YAML = dict(
     sensor_type= "camera",
     comment= "VI-Sensor cam0 (MT9M034)",
@@ -35,6 +42,7 @@ CAM_SENSOR_YAML = dict(
     distortion_coefficients= [-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05]
 )
 
+# Can get this from ros topic
 IMU_SENSOR_YAML = dict(
     sensor_type= "imu",
     comment= "VI-Sensor IMU (ADIS16448)",
@@ -75,47 +83,49 @@ def setup_dataset_dirs(rosbag_path, output_path, camera_topics, imu_topics):
     base_path = os.path.join(output_path, dirname)
     mkdirs_without_exception(base_path)
 
-    # Create folder for camera topic
-    cam_folder_name = 'cam'
-    data_csv = 'data.csv'
-    sensor_yaml = 'sensor.yaml'
+    # Create folder for camera topics
     cam_folder_paths = []
     for i in range(len(camera_topics)):
-        cam_folder_paths.append(os.path.join(base_path, cam_folder_name + repr(i)))
-        mkdirs_without_exception(cam_folder_paths[-1])
+        cam_folder_paths.append(os.path.join(base_path, CAM_FOLDER_NAME + repr(i)))
+        current_cam_folder_path = cam_folder_paths[-1]
+        mkdirs_without_exception(current_cam_folder_path)
+
         # Create data folder
-        mkdirs_without_exception(os.path.join(cam_folder_paths[-1], 'data'))
+        mkdirs_without_exception(os.path.join(current_cam_folder_path, 'data'))
+
         # Create data.csv file
-        with open(os.path.join(cam_folder_paths[-1], data_csv), 'w+') as outfile:
+        with open(os.path.join(current_cam_folder_path, DATA_CSV), 'w+') as outfile:
             outfile.write('#timestamp [ns],filename')
+
         # Create sensor.yaml file
-        with open(os.path.join(cam_folder_paths[-1], sensor_yaml), 'w+') as outfile:
+        with open(os.path.join(current_cam_folder_path, SENSOR_YAML), 'w+') as outfile:
             outfile.write("%YAML:1.0\n")
-            CAM_SENSOR_YAML['comment'] = cam_folder_name + repr(i)
+            CAM_SENSOR_YAML['comment'] = CAM_FOLDER_NAME + repr(i)
             yaml.dump(CAM_SENSOR_YAML, outfile, default_flow_style=True)
 
 
-    # Create folder for imu topic
-    imu_folder_name = 'imu'
+    # Create folder for imu topics
     imu_folder_paths = []
     for i in range(len(imu_topics)):
-        imu_folder_paths.append(os.path.join(base_path, imu_folder_name + repr(i)))
-        mkdirs_without_exception(imu_folder_paths[-1])
+        imu_folder_paths.append(os.path.join(base_path, IMU_FOLDER_NAME + repr(i)))
+        current_imu_folder_path = imu_folder_paths[-1]
+        mkdirs_without_exception(current_imu_folder_path)
+
         # Create data.csv file
-        with open(os.path.join(imu_folder_paths[-1], data_csv), 'w+') as outfile:
+        with open(os.path.join(current_imu_folder_path, DATA_CSV), 'w+') as outfile:
             outfile.write("#timestamp [ns],w_RS_S_x [rad s^-1],w_RS_S_y [rad s^-1],w_RS_S_z [rad s^-1],a_RS_S_x [m s^-2],a_RS_S_y [m s^-2],a_RS_S_z [m s^-2]")
+
         # Create sensor.yaml file
-        with open(os.path.join(imu_folder_paths[-1], data_csv), 'w+') as outfile:
+        with open(os.path.join(current_imu_folder_path, SENSOR_YAML), 'w+') as outfile:
             outfile.write("%YAML:1.0\n")
-            IMU_SENSOR_YAML['comment'] = imu_folder_name + repr(i)
+            IMU_SENSOR_YAML['comment'] = IMU_FOLDER_NAME + repr(i)
             yaml.dump(IMU_SENSOR_YAML, outfile, default_flow_style=True)
 
     # Create body.yaml file
-    body_yaml = 'body.yaml'
-    with open(os.path.join(base_path, body_yaml), 'w+') as outfile:
+    with open(os.path.join(base_path, BODY_YAML), 'w+') as outfile:
         outfile.write("%YAML:1.0\n")
-        BODY_YAML = dict(comment = 'Automatically generated dataset using rosbag2Euroc, using rosbag: {}'.format(rosbag_path))
-        yaml.dump(BODY_YAML, outfile, default_flow_style=True)
+        body_yaml = dict(comment = 'Automatically generated dataset using Rosbag2Euroc, using rosbag: {}'.format(rosbag_path))
+        yaml.dump(body_yaml, outfile, default_flow_style=True)
 
     return cam_folder_paths, imu_folder_paths
 
@@ -135,11 +145,11 @@ def rosbag_2_euroc(rosbag_path, output_path):
             imu_topics.append(element['topic'])
 
     # Check that it has one or two Image topics.
-    if len(camera_topics) < 1:
+    if not camera_topics:
         print ("WARNING: there are no camera topics in this rosbag!")
 
     # Check that it has one, and only one, IMU topic.
-    if len(imu_topics) != 1:
+    if imu_topics) != 1:
         print ("WARNING: expected to have a single IMU topic, instead got: {} topic(s)".format(
             len(imu_topics)))
 
@@ -152,10 +162,10 @@ def rosbag_2_euroc(rosbag_path, output_path):
     # Convert image msg to Euroc dataset format.
     assert(len(camera_topics) == len(cam_folder_paths))
     for i, cam_topic in enumerate(camera_topics):
-        print("Converting camera messages for topic: {}".format(cam_topic))
-        print("Storing results in: {}".format(cam_folder_paths[i]))
+        print(f"Converting camera messages for topic: {cam_topic}")
+        print(f"Storing results in: {cam_folder_paths[i]}")
         # Write data.csv file.
-        with open(os.path.join(cam_folder_paths[i], 'data.csv'), 'a') as outfile:
+        with open(os.path.join(cam_folder_paths[i], DATA_CSV), 'a') as outfile:
             for _, msg, t in bag.read_messages(topics=[cam_topic]):
                 image_filename = str(msg.header.stamp) + '.png'
                 outfile.write('\n' + str(msg.header.stamp) + "," + image_filename)
@@ -170,9 +180,9 @@ def rosbag_2_euroc(rosbag_path, output_path):
     # Convert IMU msg to Euroc dataset format.
     assert(len(imu_topics) == len(imu_folder_paths))
     for i, imu_topic in enumerate(imu_topics):
-        print("Converting IMU messages for topic: {}".format(imu_topic))
-        print("Storing results in: {}".format(imu_folder_paths[i]))
-        with open(os.path.join(imu_folder_paths[i], 'data.csv'), 'a') as outfile:
+        print(f"Converting IMU messages for topic: {imu_topic}")
+        print(f"Storing results in: {imu_folder_paths[i]}")
+        with open(os.path.join(imu_folder_paths[i], DATA_CSV), 'a') as outfile:
             for _, msg, t in bag.read_messages(topics=[imu_topic]):
                 outfile.write(str(msg.header.stamp) + ',' +
                               str(msg.angular_velocity.x) + ',' +
@@ -181,6 +191,9 @@ def rosbag_2_euroc(rosbag_path, output_path):
                               str(msg.linear_acceleration.x) + ',' +
                               str(msg.linear_acceleration.y) + ',' +
                               str(msg.linear_acceleration.z))
+
+    # TODO(TONI): Consider adding Lidar msgs (sensor_msgs/PointCloud2)
+    # TODO(TONI): parse tf_static or cam_info and create the sensor.yaml files?
 
     # Close the rosbag.
     bag.close()
