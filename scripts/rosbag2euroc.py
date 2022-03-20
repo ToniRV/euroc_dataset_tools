@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# Usage    : python rosbag2euroc.py -i inbag.bag
-# ------------------------------------------------------------------------------
+#!/usr/bin/env python3
 
 import sys
 import argparse
@@ -149,7 +147,7 @@ def rosbag_2_euroc(rosbag_path, output_path):
         print ("WARNING: there are no camera topics in this rosbag!")
 
     # Check that it has one, and only one, IMU topic.
-    if imu_topics) != 1:
+    if imu_topics != 1:
         print ("WARNING: expected to have a single IMU topic, instead got: {} topic(s)".format(
             len(imu_topics)))
 
@@ -174,8 +172,8 @@ def rosbag_2_euroc(rosbag_path, output_path):
                     cv2.imwrite(os.path.join(cam_folder_paths[i], 'data/',
                                              image_filename),
                                 cv_image)
-                except CvBridgeError, e:
-                    print e
+                except CvBridgeError as e:
+                    print(e)
 
     # Convert IMU msg to Euroc dataset format.
     assert(len(imu_topics) == len(imu_folder_paths))
@@ -206,8 +204,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Convert rosbag.
-    print("Converting rosbag: \"{}\" to EuRoC format.".format(os.path.split(args.rosbag_path)[-1]))
-    print("Storing results in directory: {}.".format(args.output_path))
+    print(f"Converting rosbag: \"{os.path.split(args.rosbag_path)[-1]}\" to EuRoC format.")
+    print(f"Storing results in directory: {args.output_path}.")
     rosbag_2_euroc(args.rosbag_path, args.output_path)
     print("Done.")
 
